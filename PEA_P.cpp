@@ -7,8 +7,7 @@
 using namespace std;
 
 
-
-void wypelnienieGrafu(int rozmiar, vector<vector<int>>& graf) {
+void generacjaGrafu(int rozmiar, vector<vector<int>>& graf) {
 	vector<int> wierzcholki;
 	wierzcholki.resize(rozmiar);
 	graf.clear();
@@ -56,7 +55,28 @@ void wyswietl(vector<vector<int>> graf) {
 	}
 }
 
-void bruteForce(vector<vector<int>> graf) {
+int wczytaj(vector<vector<int>>& graf, string nazwa) {
+	int wartoscOptymalna;
+	int rozmiar;
+	fstream dane;
+	string sciezka = "dane\\" + nazwa + ".tsp";
+	dane.open(sciezka, ios::in);
+	dane >> sciezka;
+	dane >> rozmiar;
+	cout << sciezka << endl;
+	graf.resize(rozmiar, vector<int>(rozmiar, INT_MAX));
+	for (int i = 0; i < rozmiar; i++) {
+		for (int ii = 0; ii < rozmiar; ii++) {
+			dane >> graf[i][ii];
+		}
+	}
+	wyswietl(graf);
+
+	dane >> wartoscOptymalna;
+	return wartoscOptymalna;
+}
+
+int bruteForce(vector<vector<int>> graf) {
 	int i, minDroga = INT_MAX, droga;
 	vector<int> wierzcholki, najlepszaDroga;
 	wierzcholki.resize(graf.size());
@@ -77,29 +97,39 @@ void bruteForce(vector<vector<int>> graf) {
 
 	} while (next_permutation(wierzcholki.begin(), wierzcholki.end()));
 
-
+	return minDroga;
 }
 
-void tester(int rozmiar) {
+void tester(string nazwa) {
+	int wartoscOptymalna;
+	int minDroga;
 	fstream wynik;
 	wynik.open("wynik.txt", ios::app);//plik do zapisu
 	time_t start, koniec;
 	vector<vector<int>> graf;//graf na którym będziemy pracować
 	long long czas;
 
-	wypelnienieGrafu(rozmiar, graf);//generacja danych
+	//generacjaGrafu(rozmiar, graf);//generacja danych
+	wartoscOptymalna = wczytaj(graf, nazwa);
+
 	start = clock();
-	bruteForce(graf);//wykonanie algorytmu
+	minDroga = bruteForce(graf);//wykonanie algorytmu
 	koniec = clock();
+
 	czas = koniec - start;//obliczenie czasu
-	wynik << endl << rozmiar << " " << czas;//zapis
+	wynik << nazwa << " " << czas;//zapis
+	cout << "czas = " << czas / CLOCKS_PER_SEC << "s,\n";
+	cout << "wykryta droga = " << minDroga;
+	cout << "\noptymalna droga = " << wartoscOptymalna;
+	cout << "\nblad = " << (1.0* minDroga / wartoscOptymalna)-1;
 }
 
 int main()
 {
 	srand(time(NULL));
-	int rozmiar;
-	cin >> rozmiar;
-	tester(rozmiar);
+	string nazwa;
+	cout << "Wpisz rozmiar badanej struktury" << endl;
+	cin >> nazwa;
+	tester(nazwa);
 	return 0;
 }
