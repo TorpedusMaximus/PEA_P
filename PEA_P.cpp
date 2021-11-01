@@ -4,7 +4,32 @@
 #include <windows.h>
 #include <time.h>
 #include <fstream>
+#include <utility>
 using namespace std;
+
+struct podproblem {
+	vector<int> ciag;
+	int liczba;
+	int wartosc;
+};
+
+
+void obliczDwumian(vector<int> arr, int index, vector<int> subarr, vector<vector<int>>& podzbiory) {
+
+	if (index == arr.size()) {
+		int l = subarr.size();
+		if (l != 0) {
+			podzbiory.push_back(subarr);
+		}
+	}
+	else
+	{
+		obliczDwumian(arr, index + 1, subarr, podzbiory);
+		subarr.push_back(arr[index]);
+		obliczDwumian(arr, index + 1, subarr, podzbiory);
+	}
+}
+
 
 
 void generacjaGrafu(int rozmiar, vector<vector<int>>& graf) {
@@ -76,7 +101,7 @@ int wczytaj(vector<vector<int>>& graf, string nazwa) {
 	return wartoscOptymalna;
 }
 
-int bruteForce(vector<vector<int>> graf) {
+std::pair < int, vector<int>> bruteForce(vector<vector<int>> graf) {
 	int i, minDroga = INT_MAX, droga;
 	vector<int> wierzcholki, najlepszaDroga;
 	wierzcholki.resize(graf.size());
@@ -97,8 +122,43 @@ int bruteForce(vector<vector<int>> graf) {
 
 	} while (next_permutation(wierzcholki.begin(), wierzcholki.end()));
 
+	return std::make_pair(minDroga, najlepszaDroga);
+}
+
+int dynamicProgramming(vector<vector<int>> graf) {
+	int minDroga = INT_MAX, droga;
+	vector<int> najlepszaDroga;
+	vector<podproblem> podproblemy;
+	vector<int> ciag;
+	vector<int> tablica;
+
+	for (int i = 1; i < graf.size(); i++) {
+		podproblem temp;
+		temp.liczba = i;
+		temp.ciag.push_back(i);
+		temp.wartosc = graf[0][i];
+		podproblemy.push_back(temp);
+		tablica.push_back(i);
+	}
+
+	for (int i = 1; i < graf.size() - 1; i++) {
+		vector<vector<int>> podzbior;
+		vector<int> dummy;
+		obliczDwumian(tablica, i + 1, dummy, podzbior);
+		for (int ii = 0; ii < podzbior.size(); ii++) {
+			for (int iii = 0; iii < i; iii++) {
+				podproblem temp;
+				temp.ciag = podzbior[ii];
+				temp.liczba = iii;
+				temp.wartosc = graf[iii][ii];
+			}
+		}
+	}
+
 	return minDroga;
 }
+
+
 
 int main()
 {
@@ -108,24 +168,28 @@ int main()
 	vector<vector<int>> graf;//graf na którym będziemy pracować
 	long long czas;
 	int wartoscOptymalna;
-	int minDroga;
 	fstream wynik;
 
 	cin >> nazwa;
 	wynik.open("wynik.txt", ios::app);//plik do zapisu
-	
+
 	//generacjaGrafu(rozmiar, graf);//generacja danych
 	wartoscOptymalna = wczytaj(graf, nazwa);//wczytanie danych z pliku
 
 	start = clock();
-	minDroga = bruteForce(graf);//wykonanie algorytmu
+	auto wynik = bruteForce(graf);//wykonanie algorytmu
 	koniec = clock();
+
+
+	auto p = std::make_pair(1, 3.14);
+
+
 
 	czas = koniec - start;//obliczenie czasu
 	wynik << nazwa << " " << czas;//zapis
 	cout << "czas = " << czas / CLOCKS_PER_SEC << "s,\n";
-	cout << "wykryta droga = " << minDroga;
+	cout << "wykryta droga = " << std::get<0>(p);
 	cout << "\noptymalna droga = " << wartoscOptymalna;
-	cout << "\nblad = " << (1.0* minDroga / wartoscOptymalna)-1;
+	cout << "\nblad = " << (1.0 * wynik.get() / wartoscOptymalna) - 1;
 	return 0;
 }
