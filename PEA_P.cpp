@@ -100,17 +100,22 @@ int bruteForce(vector<vector<int>> graf) {
 	return minDroga;
 }
 
-void tester(string nazwa) {
-	int wartoscOptymalna;
-	int minDroga;
-	fstream wynik;
-	wynik.open("wynik.txt", ios::app);//plik do zapisu
+int main()
+{
+	srand(time(NULL));
+	string nazwa;
 	time_t start, koniec;
 	vector<vector<int>> graf;//graf na którym będziemy pracować
 	long long czas;
+	int wartoscOptymalna;
+	int minDroga;
+	fstream wynik;
 
+	cin >> nazwa;
+	wynik.open("wynik.txt", ios::app);//plik do zapisu
+	
 	//generacjaGrafu(rozmiar, graf);//generacja danych
-	wartoscOptymalna = wczytaj(graf, nazwa);
+	wartoscOptymalna = wczytaj(graf, nazwa);//wczytanie danych z pliku
 
 	start = clock();
 	minDroga = bruteForce(graf);//wykonanie algorytmu
@@ -122,14 +127,5 @@ void tester(string nazwa) {
 	cout << "wykryta droga = " << minDroga;
 	cout << "\noptymalna droga = " << wartoscOptymalna;
 	cout << "\nblad = " << (1.0* minDroga / wartoscOptymalna)-1;
-}
-
-int main()
-{
-	srand(time(NULL));
-	string nazwa;
-	cout << "Wpisz rozmiar badanej struktury" << endl;
-	cin >> nazwa;
-	tester(nazwa);
 	return 0;
 }
