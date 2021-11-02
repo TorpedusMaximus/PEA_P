@@ -10,51 +10,52 @@
 using namespace std;
 
 
-struct podproblem {
+struct podproblem {//struktura ułatwia pracę funkcji dynamicProgramming 
 	int liczba;
 	int wartosc;
 };
 
-struct wynikAlgorytmu {
+struct wynikAlgorytmu {//struktura zwrotna dla funkcji obliczających problem
 	vector<int> ciag;
 	int wartosc;
 };
 
 void obliczDwumian(vector<int> graf, int index, vector<int> podzbior, vector<vector<int>>& podzbiory, int stopien) {
+	//funkcja oblicza kolejne podzbiory wierzchołków o podanej wielkości
 	if (index == graf.size()) {
 		int l = podzbior.size();
 		if (l != 0) {
-			if (podzbior.size() == stopien) {
-				podzbiory.push_back(podzbior);
+			if (podzbior.size() == stopien) {//sprawdzenie długosci zbioru
+				podzbiory.push_back(podzbior);//zapis podzbioru
 			}
 		}
 	}
 	else {
-		obliczDwumian(graf, index + 1, podzbior, podzbiory, stopien);
+		obliczDwumian(graf, index + 1, podzbior, podzbiory, stopien);//rekurencja
 		podzbior.push_back(graf[index]);
 		obliczDwumian(graf, index + 1, podzbior, podzbiory, stopien);
 	}
 }
 
-void generacjaGrafu(int rozmiar, vector<vector<int>>& graf) {
+void generacjaGrafu(int rozmiar, vector<vector<int>>& graf) {//funkcja generująca graf
 	vector<int> wierzcholki;
 	wierzcholki.resize(rozmiar);
 	graf.clear();
-	graf.resize(rozmiar, vector<int>(rozmiar, INT_MAX));
+	graf.resize(rozmiar, vector<int>(rozmiar, INT_MAX));//inicjacja macierzy wag
 	for (int i = 0; i < rozmiar; i++) {
 		for (int ii = 0; ii <= i; ii++) {
 			if (i == ii) {
-				graf[i][ii] = 0;
+				graf[i][ii] = 0;//przekątna macierzy
 			}
 			else {
-				graf[i][ii] = rand() % 150 + 1;
+				graf[i][ii] = rand() % 150 + 1;//losowanie wag
 				graf[ii][i] = graf[i][ii];
 			}
 		}
 		wierzcholki[i] = i;
 	}
 
-	int wierzcholekA = 0, wierzcholekB = 0;
+	int wierzcholekA = 0, wierzcholekB = 0;//utworzenie cyklu hamiltona o wartosci 0 dla pewności działania algorytmu
 	wierzcholki.erase(find(wierzcholki.begin(), wierzcholki.end(), wierzcholekA));
 	for (int i = 0; i < rozmiar - 1; i++) {
 		wierzcholekB = wierzcholki[rand() % wierzcholki.size()];
@@ -70,7 +71,7 @@ void wyswietlWiersz(vector<int> graf) {
 		cout << graf[j];
 		if (graf[j] > 9) {
 			if (graf[j] < 100) {
-				cout << "  ";
+				cout << "  ";//formatowanie układu wag
 			}
 			else {
 				cout << " ";
@@ -93,9 +94,9 @@ int wczytaj(vector<vector<int>>& graf, string& nazwa, string& sciezka) {
 	int wartoscOptymalna;
 	int rozmiar;
 	fstream dane;
-	sciezka = "dane\\" + nazwa + ".tsp";
+	sciezka = "dane\\" + nazwa + ".tsp";//określenie scieżki do pliku
 	dane.open(sciezka, ios::in);
-	if (!dane) {
+	if (!dane) {//przy braku pliku generuj własny graf
 		generacjaGrafu(stoi(nazwa), graf);
 		rozmiar = stoi(nazwa);
 		wartoscOptymalna = 0;
@@ -105,7 +106,7 @@ int wczytaj(vector<vector<int>>& graf, string& nazwa, string& sciezka) {
 		dane >> sciezka;
 		dane >> rozmiar;
 		graf.resize(rozmiar, vector<int>(rozmiar, INT_MAX));
-		for (int i = 0; i < rozmiar; i++) {
+		for (int i = 0; i < rozmiar; i++) {//wczytywanie z pliku
 			for (int ii = 0; ii < rozmiar; ii++) {
 				dane >> graf[i][ii];
 			}
@@ -230,7 +231,7 @@ void test(string rozmiar, int powtorzenia, bool wyswietlenie) {
 
 	wynik << rozmiar << ";" << powtorzenia << ";" << (koniec - start) / CLOCKS_PER_SEC << endl;//zapis
 
-	if (wyswietlenie == true) {
+	if (wyswietlenie == true) {//wyswietlanie wyników na ekranie
 		cout << sciezka << endl;
 		wyswietl(graf);
 		cout << "czas = " << (koniec - start) / CLOCKS_PER_SEC << "s" << endl;
@@ -238,7 +239,7 @@ void test(string rozmiar, int powtorzenia, bool wyswietlenie) {
 		wyswietlWiersz(wyniki.ciag);
 		cout << "dlugosc drogi = " << wyniki.wartosc << endl;
 		cout << "optymalna droga = " << wartoscOptymalna << endl;
-		if (wartoscOptymalna == 0) {
+		if (wartoscOptymalna == 0) {//przy generacji grafu tworzony jes tcykl 0 i niszczy to obliczenia
 			cout << "blad = " << (1.0 * wyniki.wartosc / 1) * 100 << "%" << endl << endl;
 		}
 		else {
