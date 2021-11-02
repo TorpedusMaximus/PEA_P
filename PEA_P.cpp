@@ -89,22 +89,21 @@ void wyswietl(vector<vector<int>> graf) {
 	}
 }
 
-int wczytaj(vector<vector<int>>& graf, string nazwa) {
+int wczytaj(vector<vector<int>>& graf, string& nazwa, string& sciezka) {
 	int wartoscOptymalna;
 	int rozmiar;
 	fstream dane;
-	string sciezka = "dane\\" + nazwa + ".tsp";
+	sciezka = "dane\\" + nazwa + ".tsp";
 	dane.open(sciezka, ios::in);
 	if (!dane) {
 		generacjaGrafu(stoi(nazwa), graf);
 		rozmiar = stoi(nazwa);
 		wartoscOptymalna = 0;
-		cout << nazwa << endl;
+		sciezka = nazwa;
 	}
 	else {
 		dane >> sciezka;
 		dane >> rozmiar;
-		cout << sciezka << endl;
 		graf.resize(rozmiar, vector<int>(rozmiar, INT_MAX));
 		for (int i = 0; i < rozmiar; i++) {
 			for (int ii = 0; ii < rozmiar; ii++) {
@@ -145,54 +144,53 @@ wynikAlgorytmu bruteForce(vector<vector<int>> graf) {
 }
 
 wynikAlgorytmu dynamicProgramming(vector<vector<int>> graf) {
-	unordered_map<string, podproblem> podproblemy;
+	unordered_map<string, podproblem> podproblemy;//zbior wszystkich podproblemów
 	vector<int> tablica;
-	podproblem najlepszaWartosc, wartosc;
-	unsigned long bits, prev;
+	podproblem najlepszaWartosc, wartosc;//zmienne 
+	unsigned long ciag, poprzedni;
 
-	for (int i = 1; i < graf.size(); i++) {
+	for (int i = 1; i < graf.size(); i++) {//wypełnienie wartości najktrótszych podproblemów
 		wartosc.liczba = i;
 		wartosc.wartosc = graf[0][i];
 		podproblemy[to_string(1 << i) + to_string(i)] = wartosc;
-		tablica.push_back(i);
+		tablica.push_back(i);//zmienna pomocnicza do innego miejsca w kodzie
 	}
 
-	for (int i = 2; i < graf.size(); i++) {
-		vector<vector<int>> podzbiory;
+	for (int i = 2; i < graf.size(); i++) {//obliczenie wartości wszytskich podzbiorów
+		vector<vector<int>> podzbiory;//podzbiory danego poziomu 
 		vector<int> dummy;
-		obliczDwumian(tablica, 0, dummy, podzbiory, i);
+		obliczDwumian(tablica, 0, dummy, podzbiory, i);//obliczenie podzbiorów
 
 		for (auto podzbior : podzbiory) {
-			bits = 0;
+			ciag = 0;
 			for (auto bit : podzbior) {
-				bits |= 1 << bit;
+				ciag |= 1 << bit;
 			}
 
 			for (auto k : podzbior) {
-				prev = bits & ~(1 << k);
-				najlepszaWartosc.liczba = INT_MAX;
+				poprzedni = ciag & ~(1 << k);
+				najlepszaWartosc.liczba = INT_MAX;//zmienna przechowująca minimum
 				najlepszaWartosc.wartosc = INT_MAX;
 
-				for (auto m : podzbior) {
+				for (auto m : podzbior) {//szukanie podzbioru o minimalnej wartości
 					if (m == k) {
 						continue;
 					}
-					wartosc.wartosc = podproblemy[to_string(prev) + to_string(m)].wartosc + graf[m][k]; //new value
+					wartosc.wartosc = podproblemy[to_string(poprzedni) + to_string(m)].wartosc + graf[m][k]; //new value
 					wartosc.liczba = m;
 					najlepszaWartosc = (najlepszaWartosc.wartosc < wartosc.wartosc) ? najlepszaWartosc : wartosc; // if best < value than best else value
 				}
-				podproblemy[to_string(bits) + to_string(k)] = najlepszaWartosc;
+				podproblemy[to_string(ciag) + to_string(k)] = najlepszaWartosc;//dodanie optymalnego podzbioru
 			}
 		}
 	}
 
-	bits = (1 << graf.size()) - 2;
+	ciag = (1 << graf.size()) - 2;
 	najlepszaWartosc.liczba = INT_MAX;
 	najlepszaWartosc.wartosc = INT_MAX;
 
-	for (int i = 1; i < graf.size() - 1; i++) {
-
-		wartosc.wartosc = podproblemy[to_string(bits) + to_string(i)].wartosc + graf[i][0];
+	for (int i = 1; i < graf.size() - 1; i++) {//obliczenie optymalnego cyklu
+		wartosc.wartosc = podproblemy[to_string(ciag) + to_string(i)].wartosc + graf[i][0];
 		najlepszaWartosc = (najlepszaWartosc.wartosc < wartosc.wartosc) ? najlepszaWartosc : wartosc;
 	}
 
@@ -200,56 +198,72 @@ wynikAlgorytmu dynamicProgramming(vector<vector<int>> graf) {
 	tablica.clear();
 	tablica.resize(graf.size() + 1, 0);
 
-	for (int i = 1; i < graf.size(); i++) {
+	for (int i = 1; i < graf.size(); i++) {//obliczenie scieżki optymlanego cyklu
 		tablica[i] = wartosc.liczba;
-		wartosc = podproblemy[to_string(bits) + to_string(tablica[i])];
-		bits = bits & ~(1 << tablica[i]);
+		wartosc = podproblemy[to_string(ciag) + to_string(tablica[i])];
+		ciag = ciag & ~(1 << tablica[i]);
 	}
-	wynikAlgorytmu wynik;
+	wynikAlgorytmu wynik;//zwracanie wyników algorytmu
 	wynik.ciag = tablica;
 	wynik.wartosc = najlepszaWartosc.wartosc;
 
 	return wynik;
 }
 
-void test(string nazwa) {
+void test(string rozmiar, int powtorzenia, bool wyswietlenie) {
 	srand(time(NULL));
 	time_t start, koniec;
 	vector<vector<int>> graf;//graf na którym będziemy pracować
-	long long czas;
-	int wartoscOptymalna = -1;
+	int wartoscOptymalna;
 	fstream wynik;
+	wynikAlgorytmu wyniki;
+	string sciezka;
 
+	wynik.open("wynik.csv", ios::app);//plik do zapisu
+	wartoscOptymalna = wczytaj(graf, rozmiar, sciezka);//wczytanie danych z pliku
 
-	wynik.open("wynik.txt", ios::app);//plik do zapisu
-
-	wartoscOptymalna = wczytaj(graf, nazwa);//wczytanie danych z pliku
-
-	wyswietl(graf);
 	start = clock();
-	wynikAlgorytmu wyniki = dynamicProgramming(graf);//wykonanie algorytmu
+	for (int i = 0; i < powtorzenia; i++) {
+		wyniki = dynamicProgramming(graf);//wykonanie algorytmu
+	}
 	koniec = clock();
 
-	czas = koniec - start;//obliczenie czasu
-	wynik << nazwa << ";" << czas / CLOCKS_PER_SEC << endl;//zapis
-	cout << "czas = " << czas / CLOCKS_PER_SEC << "s" << endl;
-	cout << "wykryta droga = ";
-	wyswietlWiersz(wyniki.ciag);
-	cout << "dlugosc drogi = " << wyniki.wartosc << endl;
-	cout << "optymalna droga = " << wartoscOptymalna << endl;
-	if (wartoscOptymalna == 0) {
-		cout << "blad = " << (1.0 * wyniki.wartosc / 1) * 100 << "%";
-	}
-	else {
-		cout << "blad = " << ((1.0 * wyniki.wartosc / wartoscOptymalna) - 1) * 100 << "%";
-	}
+	wynik << rozmiar << ";" << powtorzenia << ";" << (koniec - start) / CLOCKS_PER_SEC << endl;//zapis
 
+	if (wyswietlenie == true) {
+		cout << sciezka << endl;
+		wyswietl(graf);
+		cout << "czas = " << (koniec - start) / CLOCKS_PER_SEC << "s" << endl;
+		cout << "wykryta droga = ";
+		wyswietlWiersz(wyniki.ciag);
+		cout << "dlugosc drogi = " << wyniki.wartosc << endl;
+		cout << "optymalna droga = " << wartoscOptymalna << endl;
+		if (wartoscOptymalna == 0) {
+			cout << "blad = " << (1.0 * wyniki.wartosc / 1) * 100 << "%" << endl << endl;
+		}
+		else {
+			cout << "blad = " << ((1.0 * wyniki.wartosc / wartoscOptymalna) - 1) * 100 << "%" << endl << endl;
+		}
+	}
 }
 
+void inicjalizacja() {
+	fstream konfiguracja;
+	konfiguracja.open("start.ini", ios::in);//wczytanie konfiguracji
+	int rozmiar, powtorzenia;
+	bool wyswietlenie;
 
-int main()
-{
-	test("20");
+	if (konfiguracja) {
+		while (!konfiguracja.eof()) {//testy dla wczytanych wartości
+			konfiguracja >> rozmiar;
+			konfiguracja >> powtorzenia;
+			konfiguracja >> wyswietlenie;
+			test(to_string(rozmiar), powtorzenia, wyswietlenie);
+		}
+	}
+}
 
+int main() {
+	inicjalizacja();
 	return 0;
 }
