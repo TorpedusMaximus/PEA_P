@@ -195,13 +195,13 @@ wynikAlgorytmu dynamicProgramming(vector<vector<int>> graf) {
 		najlepszaWartosc = (najlepszaWartosc.wartosc < wartosc.wartosc) ? najlepszaWartosc : wartosc;
 	}
 
-	wartosc = najlepszaWartosc;
+	najlepszaWartosc;
 	tablica.clear();
 	tablica.resize(graf.size() + 1, 0);
 
 	for (int i = 1; i < graf.size(); i++) {//obliczenie scieżki optymlanego cyklu
-		tablica[i] = wartosc.liczba;
-		wartosc = podproblemy[to_string(ciag) + to_string(tablica[i])];
+		tablica[i] = najlepszaWartosc.liczba;
+		najlepszaWartosc = podproblemy[to_string(ciag) + to_string(tablica[i])];
 		ciag = ciag & ~(1 << tablica[i]);
 	}
 	wynikAlgorytmu wynik;//zwracanie wyników algorytmu
