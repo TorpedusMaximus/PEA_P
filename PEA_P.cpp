@@ -120,7 +120,7 @@ wynikAlgorytmu bruteForce(vector<vector<int>> graf) {
 	int i, minDroga = INT_MAX, droga;
 	vector<int> wierzcholki, najlepszaDroga;
 	wierzcholki.resize(graf.size());
-	for (i = 0; i < graf.size(); i++) {
+	for (i = 1; i < graf.size(); i++) {
 		wierzcholki[i] = i;
 	}
 	i = 0;
@@ -128,8 +128,12 @@ wynikAlgorytmu bruteForce(vector<vector<int>> graf) {
 		droga = 0;
 		for (i = 0; i < graf.size() - 1; i++) {//obliczenie drogi
 			droga += graf[wierzcholki[i]][wierzcholki[i + 1]];
+			if (droga > minDroga) {
+				break;
+			}
 		}
-		droga += graf[wierzcholki[i]][wierzcholki[0]];
+		droga += graf[0][wierzcholki[0]];
+		droga += graf[wierzcholki[wierzcholki.size()-1]][0];
 		if (droga < minDroga) {//porownianie wynikow
 			minDroga = droga;
 			najlepszaDroga = wierzcholki;
@@ -187,11 +191,12 @@ wynikAlgorytmu dynamicProgramming(vector<vector<int>> graf) {
 	}
 
 	ciag = (1 << graf.size()) - 2;
-	najlepszaWartosc.liczba = INT_MAX;
+	najlepszaWartosc.liczba = 0;
 	najlepszaWartosc.wartosc = INT_MAX;
 
 	for (int i = 1; i < graf.size() - 1; i++) {//obliczenie optymalnego cyklu
 		wartosc.wartosc = podproblemy[to_string(ciag) + to_string(i)].wartosc + graf[i][0];
+		wartosc.liczba = i;
 		najlepszaWartosc = (najlepszaWartosc.wartosc < wartosc.wartosc) ? najlepszaWartosc : wartosc;
 	}
 
@@ -225,7 +230,7 @@ void test(string rozmiar, int powtorzenia, bool wyswietlenie) {
 
 	start = clock();
 	for (int i = 0; i < powtorzenia; i++) {
-		wyniki = dynamicProgramming(graf);//wykonanie algorytmu
+		wyniki = bruteForce(graf);//wykonanie algorytmu
 	}
 	koniec = clock();
 
@@ -255,12 +260,12 @@ void inicjalizacja() {
 	bool wyswietlenie;
 
 	if (konfiguracja) {
-		while (!konfiguracja.eof()) {//testy dla wczytanych wartości
+		 do{//testy dla wczytanych wartości
 			konfiguracja >> rozmiar;
 			konfiguracja >> powtorzenia;
 			konfiguracja >> wyswietlenie;
 			test(to_string(rozmiar), powtorzenia, wyswietlenie);
-		}
+		 } while (!konfiguracja.eof());
 	}
 }
 
