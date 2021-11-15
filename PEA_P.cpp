@@ -10,6 +10,9 @@
 using namespace std;
 
 
+/////////////////////////////////////////////////////OBSŁUGA GRAFU/////////////////////////////////////////////////////////////////////////////////////////////
+
+
 struct podproblem {//struktura ułatwia pracę funkcji dynamicProgramming 
 	int liczba;
 	int wartosc;
@@ -19,23 +22,6 @@ struct wynikAlgorytmu {//struktura zwrotna dla funkcji obliczających problem
 	vector<int> ciag;
 	int wartosc;
 };
-
-void obliczDwumian(vector<int> graf, int index, vector<int> podzbior, vector<vector<int>>& podzbiory, int stopien) {
-	//funkcja oblicza kolejne podzbiory wierzchołków o podanej wielkości
-	if (index == graf.size()) {
-		int l = podzbior.size();
-		if (l != 0) {
-			if (podzbior.size() == stopien) {//sprawdzenie długosci zbioru
-				podzbiory.push_back(podzbior);//zapis podzbioru
-			}
-		}
-	}
-	else {
-		obliczDwumian(graf, index + 1, podzbior, podzbiory, stopien);//rekurencja
-		podzbior.push_back(graf[index]);
-		obliczDwumian(graf, index + 1, podzbior, podzbiory, stopien);
-	}
-}
 
 void generacjaGrafu(int rozmiar, vector<vector<int>>& graf) {//funkcja generująca graf
 	vector<int> wierzcholki;
@@ -116,6 +102,10 @@ int wczytaj(vector<vector<int>>& graf, string& nazwa, string& sciezka) {
 	return wartoscOptymalna;
 }
 
+
+/////////////////////////////////////////////////////ALGORYTMY//////////////////////////////////////////////////////////////////////////////////////////
+
+
 wynikAlgorytmu bruteForce(vector<vector<int>> graf) {
 	int i, minDroga = INT_MAX, droga;
 	vector<int> wierzcholki, najlepszaDroga;
@@ -133,7 +123,7 @@ wynikAlgorytmu bruteForce(vector<vector<int>> graf) {
 			}
 		}
 		droga += graf[0][wierzcholki[0]];
-		droga += graf[wierzcholki[wierzcholki.size()-1]][0];
+		droga += graf[wierzcholki[wierzcholki.size() - 1]][0];
 		if (droga < minDroga) {//porownianie wynikow
 			minDroga = droga;
 			najlepszaDroga = wierzcholki;
@@ -144,8 +134,27 @@ wynikAlgorytmu bruteForce(vector<vector<int>> graf) {
 	wynikAlgorytmu wynik;
 	wynik.ciag = najlepszaDroga;
 	wynik.wartosc = minDroga;
+	wynik.ciag.push_back(0);
 
 	return wynik;
+}
+
+
+void obliczDwumian(vector<int> graf, int index, vector<int> podzbior, vector<vector<int>>& podzbiory, int stopien) {
+	//funkcja oblicza kolejne podzbiory wierzchołków o podanej wielkości
+	if (index == graf.size()) {
+		int l = podzbior.size();
+		if (l != 0) {
+			if (podzbior.size() == stopien) {//sprawdzenie długosci zbioru
+				podzbiory.push_back(podzbior);//zapis podzbioru
+			}
+		}
+	}
+	else {
+		obliczDwumian(graf, index + 1, podzbior, podzbiory, stopien);//rekurencja
+		podzbior.push_back(graf[index]);
+		obliczDwumian(graf, index + 1, podzbior, podzbiory, stopien);
+	}
 }
 
 wynikAlgorytmu dynamicProgramming(vector<vector<int>> graf) {
@@ -183,7 +192,9 @@ wynikAlgorytmu dynamicProgramming(vector<vector<int>> graf) {
 					}
 					wartosc.wartosc = podproblemy[to_string(poprzedni) + to_string(m)].wartosc + graf[m][k]; //new value
 					wartosc.liczba = m;
-					najlepszaWartosc = (najlepszaWartosc.wartosc < wartosc.wartosc) ? najlepszaWartosc : wartosc; // if best < value than best else value
+					if (najlepszaWartosc.wartosc > wartosc.wartosc) {
+						najlepszaWartosc = wartosc;
+					}
 				}
 				podproblemy[to_string(ciag) + to_string(k)] = najlepszaWartosc;//dodanie optymalnego podzbioru
 			}
@@ -216,7 +227,115 @@ wynikAlgorytmu dynamicProgramming(vector<vector<int>> graf) {
 	return wynik;
 }
 
-void test(string rozmiar, int powtorzenia, bool wyswietlenie) {
+
+void znajdzLepszyZbior(vector<vector<int>> graf, vector<vector<int>>& lepszeZbiory) {
+	lepszeZbiory.resize(graf.size());
+
+	for (int i = 0; i < graf.size(); i++) {
+		sort(graf[i].begin(), graf[i].end());
+		graf[i].erase(graf[i].begin());
+		lepszeZbiory[i].assign(graf[i].begin(), graf[i].begin() + 2);
+	}
+}
+
+void BnBrekurencja(vector<vector<int>> graf, int aktualnyZbior, int aktualnaSciezka, int poziom, vector<int> sciezka, int& najlepszeRozwiazanie, vector<int>& najlepszaSciezka, vector<bool> odwiedzone, vector<vector<int>> lepszeZbiory) {
+	int temp = aktualnyZbior;
+	if (poziom == graf.size()) {
+		int aktualneRozwiazanie = aktualnaSciezka + graf[sciezka[poziom - 1]][0];
+		if (aktualneRozwiazanie < najlepszeRozwiazanie) {
+			najlepszeRozwiazanie = aktualneRozwiazanie;
+			najlepszaSciezka = sciezka;
+		}
+		return;
+	}
+
+	for (int i = 0; i < graf.size(); i++) {
+		if (sciezka[poziom - 1] != i && odwiedzone[i] == false) {
+			int wartosc = 0;
+			aktualnaSciezka += graf[sciezka[poziom - 1]][i];
+
+			if (poziom == 1) {
+				aktualnyZbior -= (lepszeZbiory[sciezka[poziom - 1]][0] + lepszeZbiory[i][0]) / 2;
+			}
+			else {
+				aktualnyZbior -= (lepszeZbiory[sciezka[poziom - 1]][1] + lepszeZbiory[i][0]) / 2;
+			}
+
+			if (aktualnyZbior + aktualnaSciezka < najlepszeRozwiazanie) {
+				sciezka[poziom] = i;
+				odwiedzone[i] = true;
+				BnBrekurencja(graf, aktualnyZbior, aktualnaSciezka, poziom + 1, sciezka, najlepszeRozwiazanie, najlepszaSciezka, odwiedzone, lepszeZbiory);
+			}
+
+			aktualnaSciezka -= graf[sciezka[poziom - 1]][i];
+			aktualnyZbior = temp;
+
+			for (int ii = 0; ii < odwiedzone.size(); ii++) {
+				odwiedzone[ii] = false;
+			}
+			for (int ii = 0; ii < poziom; ii++) {
+				odwiedzone[sciezka[ii]] = true;
+			}
+
+		}
+	}
+}
+
+wynikAlgorytmu BnBstart(vector<vector<int>> graf) {
+	vector<vector<int>> lepszeZbiory;
+	znajdzLepszyZbior(graf, lepszeZbiory);
+	vector<int> sciezka;
+	vector<bool> odwiedzone;
+	sciezka.resize(graf.size() + 1, 0);
+	odwiedzone.resize(graf.size() + 1, 0);
+	int aktualnyZbior = 0;
+
+	for (int i = 0; i < graf.size(); i++) {
+		aktualnyZbior += lepszeZbiory[i][0];
+		aktualnyZbior += lepszeZbiory[i][1];
+	}
+
+	if (aktualnyZbior % 2 == 0) {
+		aktualnyZbior = aktualnyZbior / 2;
+	}
+	else {
+		aktualnyZbior = aktualnyZbior / 2 + 1;
+	}
+	odwiedzone[0] = true;
+	sciezka[0] = 0;
+
+	wynikAlgorytmu wyniki;
+	wyniki.wartosc = INT_MAX;
+	wyniki.ciag;
+	BnBrekurencja(graf, aktualnyZbior, 0, 1, sciezka, wyniki.wartosc, wyniki.ciag, odwiedzone, lepszeZbiory);
+
+	return wyniki;
+}
+
+
+////////////////////////////////////////////////////APLIKACJA/////////////////////////////////////////////////////////////////////////////////////////////
+
+void algorytm(int zadanie, int powtorzenia, vector<vector<int>> graf, wynikAlgorytmu& wyniki) {
+	switch (zadanie) {
+	case 1:
+		for (int i = 0; i < powtorzenia; i++) {
+			wyniki = bruteForce(graf);//wykonanie algorytmu
+		}
+		break;
+	case 2:
+		for (int i = 0; i < powtorzenia; i++) {
+			wyniki = dynamicProgramming(graf);//wykonanie algorytmu
+		}
+		break;
+	case 3:
+		for (int i = 0; i < powtorzenia; i++) {
+			wyniki = BnBstart(graf);//wykonanie algorytmu
+		}
+		break;
+	}
+}
+
+void test(string rozmiar, int powtorzenia, bool wyswietlenie, int zadanie) {
 	srand(time(NULL));
 	time_t start, koniec;
 	vector<vector<int>> graf;//graf na którym będziemy pracować
@@ -229,9 +348,7 @@ void test(string rozmiar, int powtorzenia, bool wyswietlenie) {
 	wartoscOptymalna = wczytaj(graf, rozmiar, sciezka);//wczytanie danych z pliku
 
 	start = clock();
-	for (int i = 0; i < powtorzenia; i++) {
-		wyniki = bruteForce(graf);//wykonanie algorytmu
-	}
+	algorytm(zadanie, powtorzenia, graf, wyniki);
 	koniec = clock();
 
 	wynik << rozmiar << ";" << powtorzenia << ";" << (koniec - start) / CLOCKS_PER_SEC << endl;//zapis
@@ -256,16 +373,17 @@ void test(string rozmiar, int powtorzenia, bool wyswietlenie) {
 void inicjalizacja() {
 	fstream konfiguracja;
 	konfiguracja.open("start.ini", ios::in);//wczytanie konfiguracji
-	int rozmiar, powtorzenia;
+	int rozmiar, powtorzenia, zadanie;
 	bool wyswietlenie;
 
 	if (konfiguracja) {
-		 do{//testy dla wczytanych wartości
+		do {//testy dla wczytanych wartości
 			konfiguracja >> rozmiar;
 			konfiguracja >> powtorzenia;
 			konfiguracja >> wyswietlenie;
-			test(to_string(rozmiar), powtorzenia, wyswietlenie);
-		 } while (!konfiguracja.eof());
+			konfiguracja >> zadanie;
+			test(to_string(rozmiar), powtorzenia, wyswietlenie, zadanie);
+		} while (!konfiguracja.eof());
 	}
 }
 
