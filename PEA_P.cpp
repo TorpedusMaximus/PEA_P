@@ -239,7 +239,6 @@ void znajdzLepszyZbior(vector<vector<int>> graf, vector<vector<int>>& lepszeZbio
 }
 
 void BnBrekurencja(vector<vector<int>> graf, int aktualnyZbior, int aktualnaSciezka, int poziom, vector<int> sciezka, int& najlepszeRozwiazanie, vector<int>& najlepszaSciezka, vector<bool> odwiedzone, vector<vector<int>> lepszeZbiory) {
-	int temp = aktualnyZbior;
 	if (poziom == graf.size()) {
 		int aktualneRozwiazanie = aktualnaSciezka + graf[sciezka[poziom - 1]][0];
 		if (aktualneRozwiazanie < najlepszeRozwiazanie) {
@@ -253,7 +252,7 @@ void BnBrekurencja(vector<vector<int>> graf, int aktualnyZbior, int aktualnaScie
 		if (sciezka[poziom - 1] != i && odwiedzone[i] == false) {
 			int wartosc = 0;
 			aktualnaSciezka += graf[sciezka[poziom - 1]][i];
-
+			int temp = aktualnyZbior;
 			if (poziom == 1) {
 				aktualnyZbior -= (lepszeZbiory[sciezka[poziom - 1]][0] + lepszeZbiory[i][0]) / 2;
 			}
@@ -308,12 +307,12 @@ wynikAlgorytmu BnBstart(vector<vector<int>> graf) {
 	wyniki.wartosc = INT_MAX;
 	wyniki.ciag;
 	BnBrekurencja(graf, aktualnyZbior, 0, 1, sciezka, wyniki.wartosc, wyniki.ciag, odwiedzone, lepszeZbiory);
-
 	return wyniki;
 }
 
 
 ////////////////////////////////////////////////////APLIKACJA/////////////////////////////////////////////////////////////////////////////////////////////
+
 
 void algorytm(int zadanie, int powtorzenia, vector<vector<int>> graf, wynikAlgorytmu& wyniki) {
 	switch (zadanie) {

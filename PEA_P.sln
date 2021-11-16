@@ -8,6 +8,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{B4857E8F-204A-4649-AD37-15EC51F3EC76}"
 	ProjectSection(SolutionItems) = preProject
 		start.ini = start.ini
+		wynik.csv = wynik.csv
 	EndProjectSection
 EndProject
 Global
