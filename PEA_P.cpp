@@ -349,8 +349,6 @@ wynikAlgorytmu symulowaneWyzarzanie(vector<vector<int>> graf) {
 	}
 	sciezka = najlepszaSciezka;
 
-	time_t testowy, start = clock();
-	long czas = 0;
 	temperatura = 0.5 * dlugoscSciezki(graf, najlepszaSciezka);
 	while (temperatura > 0.0001) {
 		for (int i = 0; i < 50; i++) {
@@ -369,8 +367,6 @@ wynikAlgorytmu symulowaneWyzarzanie(vector<vector<int>> graf) {
 			}
 		}
 		temperatura *= 0.999;
-		testowy = clock();
-		czas = (testowy - start) / CLOCKS_PER_SEC;
 	}
 
 	wyniki.wartosc = dlugoscSciezki(graf, najlepszaSciezka);
