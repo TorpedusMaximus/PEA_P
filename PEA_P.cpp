@@ -372,7 +372,6 @@ wynikAlgorytmu symulowaneWyzarzanie(vector<vector<int>> graf) {
 	wyniki.wartosc = dlugoscSciezki(graf, najlepszaSciezka);
 	wyniki.ciag = najlepszaSciezka;
 
-	//((double)rand() / RAND_MAX)
 	return wyniki;
 }
 
