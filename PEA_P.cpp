@@ -350,8 +350,11 @@ wynikAlgorytmu symulowaneWyzarzanie(vector<vector<int>> graf) {
 	sciezka = najlepszaSciezka;
 
 	temperatura = 0.5 * dlugoscSciezki(graf, najlepszaSciezka);
+	if (temperatura > 1000) {
+		temperatura = 1000;
+	}
 	while (temperatura > 0.0001) {
-		for (int i = 0; i < 50; i++) {
+		for (int i = 0; i < 30; i++) {
 			vector<int> sasiad = sciezka;
 
 			w1 = rand() % sciezka.size();
@@ -366,7 +369,7 @@ wynikAlgorytmu symulowaneWyzarzanie(vector<vector<int>> graf) {
 				najlepszaSciezka = sciezka;
 			}
 		}
-		temperatura *= 0.999;
+		temperatura *= 0.997;
 	}
 
 	wyniki.wartosc = dlugoscSciezki(graf, najlepszaSciezka);
