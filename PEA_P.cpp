@@ -104,11 +104,10 @@ int wczytaj(vector<vector<int>>& graf, string& nazwa, string& sciezka) {
 
 int dlugoscSciezki(vector<vector<int>> graf, vector<int> sciezka) {
 	int wynik = 0;
-	wynik += graf[0][sciezka[0]];
 	for (int i = 0; i < sciezka.size() - 1; i++) {
 		wynik += graf[sciezka[i]][sciezka[i + 1]];
 	}
-	wynik += graf[sciezka[sciezka.size()-1]][0];
+	wynik += graf[sciezka[sciezka.size() - 1]][sciezka[0]];
 	return wynik;
 }
 
@@ -334,45 +333,61 @@ double prawdopodobienstwo(vector<vector<int>> graf, vector<int> sciezka, vector<
 
 wynikAlgorytmu symulowaneWyzarzanie(vector<vector<int>> graf) {
 	vector<int> sciezka, najlepszaSciezka;
-	double temperatura = 1.0;
+	double temperatura = 1000.0;
 	wynikAlgorytmu wyniki;
 	int w1, w2;
 
 	for (int i = 0; i < graf.size(); i++) {
 		sciezka.push_back(i);
 	}
-	random_shuffle(sciezka.begin(), sciezka.begin());
 	najlepszaSciezka = sciezka;
-
-	while (temperatura >= 0.000000000000000000000000000000000001) {
-		temperatura *= 0.99;
-		vector<int> sasiad = sciezka;
-
-		w1 = rand() % sciezka.size();
-		w2 = (w1 + rand() % sciezka.size()) % sciezka.size();
-		if (w1 < w2) {
-			random_shuffle(sasiad.begin() + w1, sasiad.begin() + w2);
-		}
-		else {
-			random_shuffle(sasiad.begin() + w2, sasiad.begin() + w1);
-		}
-
-		if (prawdopodobienstwo(graf, sciezka, sasiad, temperatura) > (double)rand() / RAND_MAX) {
-			sciezka = sasiad;
-		}
-		
+	for (int i = 0; i < 1000; i++) {
+		random_shuffle(sciezka.begin(), sciezka.end());
 		if (dlugoscSciezki(graf, sciezka) < dlugoscSciezki(graf, najlepszaSciezka)) {
 			najlepszaSciezka = sciezka;
 		}
 	}
+	sciezka = najlepszaSciezka;
+
+	time_t testowy, start = clock();
+	long czas = 0;
+	temperatura = 0.5 * dlugoscSciezki(graf, najlepszaSciezka);
+	while (temperatura > 0.0001) {
+		for (int i = 0; i < 50; i++) {
+			vector<int> sasiad = sciezka;
+
+			w1 = rand() % sciezka.size();
+			w2 = (w1 + rand() % sciezka.size()) % sciezka.size();
+			swap(sasiad[w1], sasiad[w2]);
+
+			if (prawdopodobienstwo(graf, sciezka, sasiad, temperatura) > (double)rand() / RAND_MAX) {
+				sciezka = sasiad;
+			}
+
+			if (dlugoscSciezki(graf, sciezka) < dlugoscSciezki(graf, najlepszaSciezka)) {
+				najlepszaSciezka = sciezka;
+			}
+		}
+		temperatura *= 0.999;
+		testowy = clock();
+		czas = (testowy - start) / CLOCKS_PER_SEC;
+	}
+
 	wyniki.wartosc = dlugoscSciezki(graf, najlepszaSciezka);
-	wyniki.ciag.push_back(0);
-	wyniki.ciag.assign(najlepszaSciezka.begin(), najlepszaSciezka.end());
-	wyniki.ciag.push_back(0);
+	wyniki.ciag = najlepszaSciezka;
 
 	//((double)rand() / RAND_MAX)
 	return wyniki;
 }
+
+
+//wynikAlgorytmu tabuSearch(vector<vector<int>> graf) {
+//
+//
+//
+//
+//
+//}
 
 
 ////////////////////////////////////////////////////APLIKACJA///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
