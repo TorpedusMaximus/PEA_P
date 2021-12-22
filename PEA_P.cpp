@@ -18,6 +18,12 @@ struct podproblem {//struktura ułatwia pracę funkcji dynamicProgramming
 	int wartosc;
 };
 
+struct tabu {
+	int index1;
+	int index2;
+	int kadecja;
+};
+
 struct wynikAlgorytmu {//struktura zwrotna dla funkcji obliczających problem
 	vector<int> ciag;
 	int wartosc;
@@ -111,9 +117,26 @@ int dlugoscSciezki(vector<vector<int>> graf, vector<int> sciezka) {
 	return wynik;
 }
 
+vector<int> losujSciezke(vector<vector<int>> graf) {
+	vector<int> sciezka, najlepszaSciezka;
+
+	for (int i = 0; i < graf.size(); i++) {
+		sciezka.push_back(i);
+	}
+	najlepszaSciezka = sciezka;
+	for (int i = 0; i < 10000; i++) {
+		random_shuffle(sciezka.begin(), sciezka.end());
+		if (dlugoscSciezki(graf, sciezka) < dlugoscSciezki(graf, najlepszaSciezka)) {
+			najlepszaSciezka = sciezka;
+		}
+	}
+	return najlepszaSciezka;
+}
+
 
 /////////////////////////////////////////////////////ALGORYTMY/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+//BF
 
 wynikAlgorytmu bruteForce(vector<vector<int>> graf) {
 	int i, minDroga = INT_MAX, droga;
@@ -148,6 +171,7 @@ wynikAlgorytmu bruteForce(vector<vector<int>> graf) {
 	return wynik;
 }
 
+//DP
 
 void obliczDwumian(vector<int> graf, int index, vector<int> podzbior, vector<vector<int>>& podzbiory, int stopien) {
 	//funkcja oblicza kolejne podzbiory wierzchołków o podanej wielkości
@@ -236,6 +260,7 @@ wynikAlgorytmu dynamicProgramming(vector<vector<int>> graf) {
 	return wynik;
 }
 
+//BnB
 
 void znajdzLepszyZbior(vector<vector<int>> graf, vector<vector<int>>& lepszeZbiory) {
 	lepszeZbiory.resize(graf.size());
@@ -319,6 +344,7 @@ wynikAlgorytmu BnBstart(vector<vector<int>> graf) {
 	return wyniki;
 }
 
+//SA
 
 double prawdopodobienstwo(vector<vector<int>> graf, vector<int> sciezka, vector<int> sasiad, double temperatura) {
 	double energia = dlugoscSciezki(graf, sciezka);
@@ -337,24 +363,12 @@ wynikAlgorytmu symulowaneWyzarzanie(vector<vector<int>> graf) {
 	wynikAlgorytmu wyniki;
 	int w1, w2;
 
-	for (int i = 0; i < graf.size(); i++) {
-		sciezka.push_back(i);
-	}
+	sciezka = losujSciezke(graf);
 	najlepszaSciezka = sciezka;
-	for (int i = 0; i < 1000; i++) {
-		random_shuffle(sciezka.begin(), sciezka.end());
-		if (dlugoscSciezki(graf, sciezka) < dlugoscSciezki(graf, najlepszaSciezka)) {
-			najlepszaSciezka = sciezka;
-		}
-	}
-	sciezka = najlepszaSciezka;
 
 	temperatura = 0.5 * dlugoscSciezki(graf, najlepszaSciezka);
-	if (temperatura > 1000) {
-		temperatura = 1000;
-	}
-	while (temperatura > 0.0001) {
-		for (int i = 0; i < 30; i++) {
+	while (temperatura > 0.0000001) {
+		for (int i = 0; i < 60; i++) {
 			vector<int> sasiad = sciezka;
 
 			w1 = rand() % sciezka.size();
@@ -369,7 +383,7 @@ wynikAlgorytmu symulowaneWyzarzanie(vector<vector<int>> graf) {
 				najlepszaSciezka = sciezka;
 			}
 		}
-		temperatura *= 0.997;
+		temperatura *= 0.999;
 	}
 
 	wyniki.wartosc = dlugoscSciezki(graf, najlepszaSciezka);
@@ -378,14 +392,106 @@ wynikAlgorytmu symulowaneWyzarzanie(vector<vector<int>> graf) {
 	return wyniki;
 }
 
+//TS
 
-//wynikAlgorytmu tabuSearch(vector<vector<int>> graf) {
-//
-//
-//
-//
-//
-//}
+vector<int> znajdzSasiada(vector<int> sciezka, vector<vector<int>> graf, vector<tabu> &listaTabu, int najlepszaWartosc) {
+	vector<int> sasiad = sciezka, najlepszaSciezka = sciezka;
+	tabu elementListy;
+
+	for (int i = 1; i < graf.size(); ++i) {
+		for (int j = i + 1; j < graf.size(); ++j) {
+			swap(sciezka[i], sciezka[j]);
+			int tabu = 0;
+			if (dlugoscSciezki(graf, sciezka) < dlugoscSciezki(graf, najlepszaSciezka)) {
+				for (auto element : listaTabu) {
+					if ((element.index1 == i && element.index2 == j) || (element.index1 == j && element.index2 == i)) {
+						tabu = 1;
+
+						if (dlugoscSciezki(graf, sciezka) < najlepszaWartosc) {
+							najlepszaSciezka = sciezka;
+							najlepszaWartosc = dlugoscSciezki(graf, sasiad);
+							elementListy.index1 = i;
+							elementListy.index2 = j;
+							elementListy.kadecja = graf.size() * 0.4;
+							break;
+						}
+						break;
+					}
+				}
+				if (!tabu) {
+					najlepszaSciezka = sciezka;
+					elementListy.index1 = i;
+					elementListy.index2 = j;
+					elementListy.kadecja = graf.size() * 0.4;
+				}
+			}
+
+		}
+	}
+
+	for (auto element : listaTabu) {
+		element.kadecja--;
+		if (element.kadecja <= 0) {
+			element.index1 = 0;
+			element.index2 = 0;
+			element.kadecja = -1;
+		}
+	}
+
+	if (najlepszaSciezka != sciezka) {
+		rotate(listaTabu.begin(), listaTabu.begin() + 1, listaTabu.end());
+		listaTabu[0] = elementListy;
+	}
+
+	return najlepszaSciezka;
+}
+
+wynikAlgorytmu tabuSearch(vector<vector<int>> graf) {
+	wynikAlgorytmu wyniki;
+	vector<int> sciezka, najlepszaSciezka;
+	vector<tabu> listaTabu;
+	int licznik = 0.2 * graf.size();
+
+	sciezka = losujSciezke(graf);
+	najlepszaSciezka = sciezka;
+	for (int i = 0; i < graf.size() * 0.4; i++) {
+		tabu element;
+		element.index1 = 0;
+		element.index2 = 0;
+		element.kadecja = -1;
+		listaTabu.push_back(element);
+	}
+
+	int i = 0, ii = 0;
+	while (i < 500) {
+		vector<int> sasiad;
+		sasiad = znajdzSasiada(sciezka, graf, listaTabu, dlugoscSciezki(graf, najlepszaSciezka));
+
+		if (dlugoscSciezki(graf, sasiad) < dlugoscSciezki(graf, najlepszaSciezka)) {
+			najlepszaSciezka = sasiad;
+		}
+
+		if (licznik > 0 && ii > 1000) {
+			licznik--;
+			sasiad = losujSciezke(graf);
+			i = 0;
+		}
+
+		if (dlugoscSciezki(graf, sasiad) * 0.02 <= dlugoscSciezki(graf, sciezka)) {
+			i++;
+		}
+		else {
+			i = 0;
+		}
+		ii++;
+		sciezka = sasiad;
+	}
+
+	wyniki.ciag = najlepszaSciezka;
+	wyniki.wartosc = dlugoscSciezki(graf, najlepszaSciezka);
+
+	return wyniki;
+}
 
 
 ////////////////////////////////////////////////////APLIKACJA///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -413,6 +519,12 @@ void algorytm(int zadanie, int powtorzenia, vector<vector<int>> graf, wynikAlgor
 			wyniki = symulowaneWyzarzanie(graf);//wykonanie algorytmu
 		}
 		break;
+	case 5:
+		for (int i = 0; i < powtorzenia; i++) {
+			wyniki = tabuSearch(graf);//wykonanie algorytmu
+		}
+		break;
+
 	}
 }
 
@@ -432,7 +544,7 @@ void test(string rozmiar, int powtorzenia, bool wyswietlenie, int zadanie) {
 	algorytm(zadanie, powtorzenia, graf, wyniki);
 	koniec = clock();
 
-	wynik << rozmiar << ";" << powtorzenia << ";" << (koniec - start) / CLOCKS_PER_SEC << endl;//zapis
+	wynik << rozmiar << ";" << powtorzenia << ";" << (koniec - start) / CLOCKS_PER_SEC << ";" << ((1.0 * wyniki.wartosc / wartoscOptymalna) - 1) * 100 << endl;//zapis
 
 	if (wyswietlenie == true) {//wyswietlanie wyników na ekranie
 		cout << sciezka << endl;
@@ -464,6 +576,7 @@ void inicjalizacja() {
 			konfiguracja >> wyswietlenie;
 			konfiguracja >> zadanie;
 			test(to_string(rozmiar), powtorzenia, wyswietlenie, zadanie);
+			cout << rozmiar<<" gotowe\n";
 		} while (!konfiguracja.eof());
 	}
 }
