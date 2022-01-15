@@ -7,6 +7,7 @@
 #include <string>
 #include <utility>
 #include <unordered_map>
+#include <set>
 using namespace std;
 
 
@@ -109,6 +110,13 @@ int dlugoscSciezki(vector<vector<int>> graf, vector<int> sciezka) {
 	}
 	wynik += graf[sciezka[sciezka.size() - 1]][sciezka[0]];
 	return wynik;
+}
+
+bool mniejszeWieksze(wynikAlgorytmu a, wynikAlgorytmu b) {
+	if (a.wartosc < b.wartosc)
+		return true;
+	else
+		return false;
 }
 
 
@@ -353,13 +361,28 @@ wynikAlgorytmu symulowaneWyzarzanie(vector<vector<int>> graf) {
 	if (temperatura > 1000) {
 		temperatura = 1000;
 	}
-	while (temperatura > 0.0001) {
-		for (int i = 0; i < 30; i++) {
+	while (temperatura > 0.000001) {
+		for (int i = 0; i < 100; i++) {
 			vector<int> sasiad = sciezka;
 
 			w1 = rand() % sciezka.size();
 			w2 = (w1 + rand() % sciezka.size()) % sciezka.size();
 			swap(sasiad[w1], sasiad[w2]);
+
+			/*if (w1 == sasiad.size() - 1) {
+				swap(sasiad[w1], sasiad[0]);
+			}
+			else {
+				swap(sasiad[w1], sasiad[w1+1]);
+			}*/
+
+			/*if (w1 < w2) {
+				random_shuffle(sciezka.begin() + w1, sciezka.begin() + w2);
+			}
+			else {
+				random_shuffle(sciezka.begin() + w2, sciezka.begin() + w1);
+			}*/
+
 
 			if (prawdopodobienstwo(graf, sciezka, sasiad, temperatura) > (double)rand() / RAND_MAX) {
 				sciezka = sasiad;
@@ -369,7 +392,7 @@ wynikAlgorytmu symulowaneWyzarzanie(vector<vector<int>> graf) {
 				najlepszaSciezka = sciezka;
 			}
 		}
-		temperatura *= 0.997;
+		temperatura *= 0.999;
 	}
 
 	wyniki.wartosc = dlugoscSciezki(graf, najlepszaSciezka);
@@ -379,13 +402,180 @@ wynikAlgorytmu symulowaneWyzarzanie(vector<vector<int>> graf) {
 }
 
 
-//wynikAlgorytmu tabuSearch(vector<vector<int>> graf) {
-//
-//
-//
-//
-//
-//}
+wynikAlgorytmu selekcjaRuletka(vector<wynikAlgorytmu> populacja) {
+	vector<double> wagi;
+	int wartoscPopulacji=0;
+	double wagaPopulacji = 0;
+	double licz = 0;
+
+	for (int i = 0; i < populacja.size(); i++) {
+		wartoscPopulacji += populacja[i].wartosc;
+	}
+
+	for (int i = 0; i < populacja.size(); i++) {
+		double waga = populacja[i].wartosc / wartoscPopulacji + wagaPopulacji;
+		wagi.push_back(waga);
+		wagaPopulacji = waga;
+	}
+
+	double szansa = rand() % RAND_MAX;
+
+	for (int i = 0; i < populacja.size(); i++) {
+		licz += wagi[i];
+		if (licz > szansa) {
+			return populacja[i - 1];
+		}
+	}
+
+	return populacja[populacja.size()-1];
+}
+
+wynikAlgorytmu selekcjaTurniej(vector<wynikAlgorytmu> populacja) {
+	wynikAlgorytmu pretendent1 = populacja[rand() % populacja.size()];
+	wynikAlgorytmu pretendent2 = populacja[rand() % populacja.size()];
+
+	return mniejszeWieksze(pretendent1, pretendent2) ? pretendent1 : pretendent2;
+}
+
+wynikAlgorytmu krzyzowanieCX(wynikAlgorytmu rodzic1, wynikAlgorytmu rodzic2) {
+	vector<int> tablica(rodzic1.ciag.size(), -1);
+	set<int> odwiedzone;
+	int pozycja = rand() % rodzic1.ciag.size();
+	int poczatekCyklu = rodzic1.ciag[pozycja];
+
+	while (true)
+	{
+		tablica[pozycja] = rodzic1.ciag[pozycja];
+		odwiedzone.insert(rodzic1.ciag[pozycja]);
+
+		if (poczatekCyklu == rodzic2.ciag[pozycja]) {
+			break;
+		}
+		else {
+			auto iterator = find(rodzic1.ciag.begin(),rodzic1.ciag.end(),rodzic2.ciag[pozycja]);
+			pozycja = iterator - rodzic1.ciag.begin();
+		}
+	}
+
+	for (int i = 0; i < rodzic1.ciag.size(); i++) {
+		if (tablica[i] == -1) {
+			tablica[i] = rodzic2.ciag[i];
+		}
+	}
+
+	wynikAlgorytmu dziecko;
+	dziecko.ciag = tablica;
+
+	return dziecko;
+
+}
+
+void mutowanieSwap(wynikAlgorytmu& dziecko) {
+	int x = rand() % dziecko.ciag.size();
+	int y = (x + rand() % dziecko.ciag.size()) % dziecko.ciag.size();
+
+	swap(dziecko.ciag[x], dziecko.ciag[y]);
+}
+
+void mutowanieScramble(wynikAlgorytmu& dziecko) {
+	int x = rand() % dziecko.ciag.size();
+	int y = (x + rand() % dziecko.ciag.size()) % dziecko.ciag.size();
+
+	if (x > y) {
+		swap(x, y);
+	}
+
+	random_shuffle(dziecko.ciag.begin() + x, dziecko.ciag.begin() + y);
+}
+
+void mutowanieReverse(wynikAlgorytmu& dziecko) {
+	int x = rand() % dziecko.ciag.size();
+	int y = (x + rand() % dziecko.ciag.size()) % dziecko.ciag.size();
+
+	if (x > y) {
+		swap(x, y);
+	}
+
+	reverse(dziecko.ciag.begin() + x, dziecko.ciag.begin() + y);
+}
+
+wynikAlgorytmu algorytmGenetyczny(vector<vector<int>> graf) {
+	float iloscPokolen = graf.size()*200;
+	int wielkoscPopulacjiPoczatkowej = 100;
+	double wspolczynnikMutacji = 0.05;
+	double wspolczynnikKrzyzowania = 0.8;
+
+	if (iloscPokolen > 50000) {
+		iloscPokolen = 50000;
+	}
+
+	vector<wynikAlgorytmu> populacja;
+	wynikAlgorytmu najlepszyZNajlepszych;
+	najlepszyZNajlepszych.wartosc = INT_MAX;
+
+	for (int i = 0; i < wielkoscPopulacjiPoczatkowej; i++) {
+		wynikAlgorytmu osobnik;
+		for (int j = 0; j < graf.size(); j++) {
+			osobnik.ciag.push_back(j);
+		}
+
+		random_shuffle(osobnik.ciag.begin(), osobnik.ciag.end());
+		osobnik.wartosc = dlugoscSciezki(graf, osobnik.ciag);
+
+		if (mniejszeWieksze(osobnik, najlepszyZNajlepszych)) {
+			najlepszyZNajlepszych = osobnik;
+		}
+
+		populacja.push_back(osobnik);
+	}
+
+	for (int i = 0; i < iloscPokolen; i++) {
+		vector<wynikAlgorytmu> nastepnaPopulacja;
+		sort(populacja.begin(), populacja.end(), mniejszeWieksze);
+
+		nastepnaPopulacja.assign(populacja.begin(), populacja.begin() + wielkoscPopulacjiPoczatkowej / 8);
+
+		while (nastepnaPopulacja.size() < wielkoscPopulacjiPoczatkowej) {
+			wynikAlgorytmu rodzic1 = selekcjaRuletka(populacja);
+			wynikAlgorytmu rodzic2 = selekcjaRuletka(populacja);
+			wynikAlgorytmu dziecko1 = rodzic1;
+			wynikAlgorytmu dziecko2 = rodzic2;
+
+			if (rand() / RAND_MAX < wspolczynnikKrzyzowania) {
+				dziecko1 = krzyzowanieCX(rodzic1, rodzic2);
+				dziecko2 = krzyzowanieCX(rodzic2, rodzic1);
+			}
+
+			if (rand() / RAND_MAX < wspolczynnikMutacji) {
+				mutowanieSwap(dziecko1);
+			}
+			if (rand() / RAND_MAX < wspolczynnikMutacji) {
+				mutowanieSwap(dziecko2);
+			}
+
+			dziecko1.wartosc = dlugoscSciezki(graf, dziecko1.ciag);
+			dziecko2.wartosc = dlugoscSciezki(graf, dziecko2.ciag);
+
+			nastepnaPopulacja.push_back(dziecko1);
+			nastepnaPopulacja.push_back(dziecko2);
+		}
+
+		for (int ii = 0; ii < nastepnaPopulacja.size(); ii++) {
+			if (mniejszeWieksze(nastepnaPopulacja[ii], najlepszyZNajlepszych)) {
+				najlepszyZNajlepszych = nastepnaPopulacja[ii];
+			}
+		}
+
+		populacja = nastepnaPopulacja;
+	}
+
+	return  najlepszyZNajlepszych;
+}
+
+
+wynikAlgorytmu koloniaMrowek(vector<vector<int>> graf) {
+
+}
 
 
 ////////////////////////////////////////////////////APLIKACJA///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -411,6 +601,16 @@ void algorytm(int zadanie, int powtorzenia, vector<vector<int>> graf, wynikAlgor
 	case 4:
 		for (int i = 0; i < powtorzenia; i++) {
 			wyniki = symulowaneWyzarzanie(graf);//wykonanie algorytmu
+		}
+		break;
+	case 6:
+		for (int i = 0; i < powtorzenia; i++) {
+			wyniki = algorytmGenetyczny(graf);//wykonanie algorytmu
+		}
+		break;
+	case 7:
+		for (int i = 0; i < powtorzenia; i++) {
+			wyniki = koloniaMrowek(graf);//wykonanie algorytmu
 		}
 		break;
 	}
@@ -470,8 +670,13 @@ void inicjalizacja() {
 
 int main() {
 	inicjalizacja();
-	/*for (int i = 0; i < 100; i++) {
-		cout << ((double)rand() / RAND_MAX) << endl;
-	}*/
+
+	/*int rozmiar;
+	cout << "Podaj rozmiar instancji. Instancje gotowe znjaduja sie w folerze dane. W przyadku innego rozmiaru program wygeneruje wlasny graf.\n";
+	cin >> rozmiar;
+	cout << "Wyniki zostana wyswietlone na ekranie oraz zapisane do pliku. W pliku bedzie format instancja;czas;blad" << endl;
+	test(to_string(rozmiar), 1, 1, 2);
+	Sleep(5000);*/
+
 	return 0;
 }
