@@ -404,7 +404,7 @@ wynikAlgorytmu symulowaneWyzarzanie(vector<vector<int>> graf) {
 
 wynikAlgorytmu selekcjaRuletka(vector<wynikAlgorytmu> populacja) {
 	vector<double> wagi;
-	int wartoscPopulacji=0;
+	int wartoscPopulacji = 0;
 	double wagaPopulacji = 0;
 	double licz = 0;
 
@@ -413,21 +413,46 @@ wynikAlgorytmu selekcjaRuletka(vector<wynikAlgorytmu> populacja) {
 	}
 
 	for (int i = 0; i < populacja.size(); i++) {
-		double waga = populacja[i].wartosc / wartoscPopulacji + wagaPopulacji;
+		double waga = 1.0 * populacja[i].wartosc / wartoscPopulacji;
 		wagi.push_back(waga);
+	}
+	reverse(wagi.begin(), wagi.end());
+
+	for (int i = 0; i < populacja.size(); i++) {
+		double waga = wagi[i] + wagaPopulacji;
+		wagi[i] = waga;
 		wagaPopulacji = waga;
 	}
 
-	double szansa = rand() % RAND_MAX;
+	wynikAlgorytmu gracz1;
+	wynikAlgorytmu gracz2;
 
+	double szansa = (1.0 * rand() / RAND_MAX) / 2;
 	for (int i = 0; i < populacja.size(); i++) {
 		licz += wagi[i];
 		if (licz > szansa) {
-			return populacja[i - 1];
+			if (i == 0) {
+				gracz1 = populacja[i];
+			}
+			else {
+				gracz1 = populacja[i - 1];
+			}
+		}
+	}
+	szansa = (1.0 * rand() / RAND_MAX) / 2;
+	for (int i = 0; i < populacja.size(); i++) {
+		licz += wagi[i];
+		if (licz > szansa) {
+			if (i == 0) {
+				gracz2 = populacja[i];
+			}
+			else {
+				gracz2 = populacja[i - 1];
+			}
 		}
 	}
 
-	return populacja[populacja.size()-1];
+	return mniejszeWieksze(gracz1, gracz2) ? gracz1 : gracz2;
 }
 
 wynikAlgorytmu selekcjaTurniej(vector<wynikAlgorytmu> populacja) {
@@ -452,7 +477,7 @@ wynikAlgorytmu krzyzowanieCX(wynikAlgorytmu rodzic1, wynikAlgorytmu rodzic2) {
 			break;
 		}
 		else {
-			auto iterator = find(rodzic1.ciag.begin(),rodzic1.ciag.end(),rodzic2.ciag[pozycja]);
+			auto iterator = find(rodzic1.ciag.begin(), rodzic1.ciag.end(), rodzic2.ciag[pozycja]);
 			pozycja = iterator - rodzic1.ciag.begin();
 		}
 	}
@@ -500,18 +525,18 @@ void mutowanieReverse(wynikAlgorytmu& dziecko) {
 }
 
 wynikAlgorytmu algorytmGenetyczny(vector<vector<int>> graf) {
-	float iloscPokolen = graf.size()*200;
-	int wielkoscPopulacjiPoczatkowej = 100;
-	double wspolczynnikMutacji = 0.05;
-	double wspolczynnikKrzyzowania = 0.8;
+	//burma14.tsp, gr17.tsp, gr21.tsp, gr24.tsp, ftv33.atsp,
+	//ftv44.atsp, ft53.atsp,  ch150.tsp, ftv170.atsp, gr202.tsp,
+	//rbg323.atsp, pcb442.tsp, rgb443.atsp
+	int wielkoscPopulacjiPoczatkowej = 40;
+	double wspolczynnikMutacji = 0.4;
+	double wspolczynnikKrzyzowania = 0.9;
 
-	if (iloscPokolen > 50000) {
-		iloscPokolen = 50000;
-	}
 
 	vector<wynikAlgorytmu> populacja;
 	wynikAlgorytmu najlepszyZNajlepszych;
 	najlepszyZNajlepszych.wartosc = INT_MAX;
+
 
 	for (int i = 0; i < wielkoscPopulacjiPoczatkowej; i++) {
 		wynikAlgorytmu osobnik;
@@ -529,28 +554,52 @@ wynikAlgorytmu algorytmGenetyczny(vector<vector<int>> graf) {
 		populacja.push_back(osobnik);
 	}
 
-	for (int i = 0; i < iloscPokolen; i++) {
+	time_t start = clock();
+	int iteracjeBezPoprawy = 0;
+	int iterator = 0;
+	wynikAlgorytmu poprzedniNajlepszyZNajlepszych = najlepszyZNajlepszych;
+	while (true) {
+		iteracjeBezPoprawy++;
+		if (iteracjeBezPoprawy > 50000) {
+			break;
+
+		}
+
+		time_t teraz = clock();
+		int minelo = (teraz - start) / CLOCKS_PER_SEC;
+		if (minelo > 600) {
+			break;
+		}
+
 		vector<wynikAlgorytmu> nastepnaPopulacja;
 		sort(populacja.begin(), populacja.end(), mniejszeWieksze);
 
 		nastepnaPopulacja.assign(populacja.begin(), populacja.begin() + wielkoscPopulacjiPoczatkowej / 8);
+		wynikAlgorytmu osobnikLosowy = populacja[wielkoscPopulacjiPoczatkowej - 1];
+		random_shuffle(osobnikLosowy.ciag.begin(), osobnikLosowy.ciag.end());
+		nastepnaPopulacja.push_back(osobnikLosowy);
 
 		while (nastepnaPopulacja.size() < wielkoscPopulacjiPoczatkowej) {
-			wynikAlgorytmu rodzic1 = selekcjaRuletka(populacja);
-			wynikAlgorytmu rodzic2 = selekcjaRuletka(populacja);
+			wynikAlgorytmu rodzic1 = selekcjaTurniej(populacja);
+			wynikAlgorytmu rodzic2 = selekcjaTurniej(populacja);
 			wynikAlgorytmu dziecko1 = rodzic1;
 			wynikAlgorytmu dziecko2 = rodzic2;
+			double szansa;
 
-			if (rand() / RAND_MAX < wspolczynnikKrzyzowania) {
+			szansa = 1.0 * rand() / RAND_MAX;
+			if (szansa < wspolczynnikKrzyzowania) {
 				dziecko1 = krzyzowanieCX(rodzic1, rodzic2);
 				dziecko2 = krzyzowanieCX(rodzic2, rodzic1);
 			}
 
-			if (rand() / RAND_MAX < wspolczynnikMutacji) {
-				mutowanieSwap(dziecko1);
-			}
-			if (rand() / RAND_MAX < wspolczynnikMutacji) {
+			szansa = 1.0 * rand() / RAND_MAX;
+			if (szansa < wspolczynnikMutacji) {
 				mutowanieSwap(dziecko2);
+			}
+			szansa = 1.0 * rand() / RAND_MAX;
+			if (szansa < wspolczynnikMutacji) {
+				mutowanieScramble(dziecko2);
+				mutowanieReverse(dziecko2);
 			}
 
 			dziecko1.wartosc = dlugoscSciezki(graf, dziecko1.ciag);
@@ -558,24 +607,31 @@ wynikAlgorytmu algorytmGenetyczny(vector<vector<int>> graf) {
 
 			nastepnaPopulacja.push_back(dziecko1);
 			nastepnaPopulacja.push_back(dziecko2);
-		}
 
-		for (int ii = 0; ii < nastepnaPopulacja.size(); ii++) {
-			if (mniejszeWieksze(nastepnaPopulacja[ii], najlepszyZNajlepszych)) {
-				najlepszyZNajlepszych = nastepnaPopulacja[ii];
+			if (mniejszeWieksze(dziecko1, najlepszyZNajlepszych)) {
+				poprzedniNajlepszyZNajlepszych = najlepszyZNajlepszych;
+				najlepszyZNajlepszych = dziecko1;
+				iteracjeBezPoprawy = 0;
+			}
+			if (mniejszeWieksze(dziecko2, najlepszyZNajlepszych)) {
+				poprzedniNajlepszyZNajlepszych = najlepszyZNajlepszych;
+				najlepszyZNajlepszych = dziecko2;
+				iteracjeBezPoprawy = 0;
 			}
 		}
 
 		populacja = nastepnaPopulacja;
+		iterator++;
 	}
-
+	cout << iterator << endl;
+	cout << iteracjeBezPoprawy << endl;
 	return  najlepszyZNajlepszych;
 }
 
 
-wynikAlgorytmu koloniaMrowek(vector<vector<int>> graf) {
-
-}
+//wynikAlgorytmu koloniaMrowek(vector<vector<int>> graf) {
+//
+//}
 
 
 ////////////////////////////////////////////////////APLIKACJA///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -610,7 +666,7 @@ void algorytm(int zadanie, int powtorzenia, vector<vector<int>> graf, wynikAlgor
 		break;
 	case 7:
 		for (int i = 0; i < powtorzenia; i++) {
-			wyniki = koloniaMrowek(graf);//wykonanie algorytmu
+			//wyniki = koloniaMrowek(graf);//wykonanie algorytmu
 		}
 		break;
 	}
@@ -632,7 +688,7 @@ void test(string rozmiar, int powtorzenia, bool wyswietlenie, int zadanie) {
 	algorytm(zadanie, powtorzenia, graf, wyniki);
 	koniec = clock();
 
-	wynik << rozmiar << ";" << powtorzenia << ";" << (koniec - start) / CLOCKS_PER_SEC << endl;//zapis
+	wynik << rozmiar << ";" << powtorzenia << ";" << (koniec - start) / CLOCKS_PER_SEC << ";" << ((1.0 * wyniki.wartosc / wartoscOptymalna) - 1) * 100 << endl;//zapis
 
 	if (wyswietlenie == true) {//wyswietlanie wyników na ekranie
 		cout << sciezka << endl;
